@@ -4,107 +4,91 @@ var inquirer = require("inquirer");
 // create the connection information for the sql database
 var connection = mysql.createConnection({
   host: "localhost",
-
-  // Your port; if not 3306
   port: 3306,
-
-  // Your username
   user: "root",
-
-  // Your password
-  password: "",
+  password: "Munchkin93",
   database: "bamazon"
 });
 
 // connect to the mysql server and sql database
 connection.connect(function(err) {
   if (err) throw err;
+  console.log("connected as id: " + connection.threadId);
   // run the start function after the connection is made to prompt the user
   start();
 });
 
-// function which prompts the user for what action they should take
 function start() {
-  inquirer
-    .prompt({
-      name: "postOrBid",
-      type: "list",
-      message: "Would you like to [POST] an auction or [BID] on an auction?",
-      choices: ["POST", "BID", "EXIT"]
-    })
-    .then(function(answer) {
-      // based on their answer, either call the bid or the post functions
-      if (answer.postOrBid === "POST") {
-        postAuction();
-      }
-      else if(answer.postOrBid === "BID") {
-        bidAuction();
-      } else{
-        connection.end();
-      }
-    });
-}
-
-
-function bidAuction() {
   // query the database for all items being auctioned
-  connection.query("SELECT * FROM auctions", function(err, results) {
+  connection.query("SELECT item_id, product_name, price FROM products", function(err, results) {
     if (err) throw err;
-    // once you have the items, prompt the user for which they'd like to bid on
+    console.log("Item ID   Product  Price");
+      for (var i = 0; i < results.length; i++) {
+      console.log(results[i].item_id, results[i].product_name, results[i].price);
+      };
+    
+    // once you have the items, prompt the user for which they'd like to purchase
     inquirer
       .prompt([
+        // {
+        //   name: "productlist",
+        //   type: "list",
+        //   choices: function() {
+        //     var choiceArray = [];
+        //     for (var i = 0; i < results.length; i++) {
+        //       choiceArray.push(results[i].item_id, results[i].product_name, results[i].price);
+        //     }
+        //     return choiceArray;
+        //   },
+        //   message: "What item would you like to purchase?"
+        // },
         {
-          name: "choice",
-          type: "rawlist",
+          name: "selection",
+          type: "list",
+          message: "Which item would you like to buy?",
           choices: function() {
             var choiceArray = [];
             for (var i = 0; i < results.length; i++) {
-              choiceArray.push(results[i].item_name);
+              choiceArray.push(results[i].product_name);
             }
             return choiceArray;
-          },
-          message: "What auction would you like to place a bid in?"
+          }
         },
         {
-          name: "bid",
+          name: "quantity",
           type: "input",
-          message: "How much would you like to bid?"
+          message: "How many would you like to purchase?"
         }
       ])
       .then(function(answer) {
         // get the information of the chosen item
-        var chosenItem;
         for (var i = 0; i < results.length; i++) {
-          if (results[i].item_name === answer.choice) {
-            chosenItem = results[i];
+          if (results[i].product_name == answer.choice) {
+            var chosenItem = results[i];
+            var chosenStock = results[i].stock_quantity;
+            var chosenPrice = results[i].price;
           }
         }
 
-        // determine if bid was high enough
-        if (chosenItem.highest_bid < parseInt(answer.bid)) {
-          // bid was high enough, so update db, let the user know, and start over
-          connection.query(
-            "UPDATE auctions SET ? WHERE ?",
-            [
-              {
-                highest_bid: answer.bid
-              },
-              {
-                id: chosenItem.id
-              }
-            ],
-            function(error) {
-              if (error) throw err;
-              console.log("Bid placed successfully!");
-              start();
-            }
-          );
+        //subtract user's purchase from stock quantity
+        var updateQuantity = parseInt(chosenStock) - parseInt(answer.quantity);
+
+        //if user requests to purchase more than available quantity
+        if (chosenStock < parseInt(answer.quantity)) {
+          console.log("Insufficient quantity!");
         }
         else {
-          // bid wasn't high enough, so apologize and start over
-          console.log("Your bid was too low. Try again...");
-          start();
+          var totalCost = (parseFloat(answer.quantity) * chosenPrice);
+          console.log("Thank you for your purchase! Your total is $" + totalCost);
+
+          var query = connection.query("UPDATE Products SET ?, WHERE ?", [{stock_quantity: updateQuantity}, {item_id: chosenItem.item_id}], function (err, results) {
+            if (err) throw err;
+            console.log("Database updated successfully.");
+          });
+
         }
+
+       
       });
   });
 }
