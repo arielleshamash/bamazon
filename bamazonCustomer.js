@@ -60,10 +60,10 @@ function start() {
           message: "How many would you like to purchase?"
         }
       ])
-      .then(function(answer) {
+      .then(function(selection) {
         // get the information of the chosen item
         for (var i = 0; i < results.length; i++) {
-          if (results[i].product_name == answer.choice) {
+          if (results[i].product_name == selection.choice) {
             var chosenItem = results[i];
             var chosenStock = results[i].stock_quantity;
             var chosenPrice = results[i].price;
@@ -71,17 +71,17 @@ function start() {
         }
 
         //subtract user's purchase from stock quantity
-        var updateQuantity = parseInt(chosenStock) - parseInt(answer.quantity);
+        var updateQuantity = parseInt(chosenStock) - parseInt(selection.quantity);
 
         //if user requests to purchase more than available quantity
-        if (chosenStock < parseInt(answer.quantity)) {
+        if (chosenStock < parseInt(selection.quantity)) {
           console.log("Insufficient quantity!");
         }
         else {
-          var totalCost = (parseFloat(answer.quantity) * chosenPrice);
+          var totalCost = (parseFloat(selection.quantity) * chosenPrice);
           console.log("Thank you for your purchase! Your total is $" + totalCost);
 
-          var query = connection.query("UPDATE Products SET ?, WHERE ?", [{stock_quantity: updateQuantity}, {item_id: chosenItem.item_id}], function (err, results) {
+          var query = connection.query("UPDATE Products SET ?, WHERE ?", [{stock_quantity: updateQuantity}, {product_name: chosenItem.product_name}], function (err, results) {
             if (err) throw err;
             console.log("Database updated successfully.");
           });
