@@ -1,4 +1,4 @@
 # Bamazon
 
-![image of start] (/images/startfunction.png)
+![image of start](/images/startfunction.png)
 
